@@ -53,31 +53,43 @@ class MultiHeadAttention(nn.Module):
         keys = keys.view(b,num_tokens,self.num_heads, self.head_dim) # changed the dimensions to (2,6,2,1)
         values = values.view(b,num_tokens,self.num_heads, self.head_dim)
         queries = queries.view(b,num_tokens,self.num_heads, self.head_dim)
-        
+        # first_head = keys[0,1,:,:]
+        # print("first head")
+        # print(first_head)
         keys = keys.transpose(1,2) #changed again to (2,2,6,1)
         queries = queries.transpose(1,2)
         values = values.transpose(1,2)
 
         attn_scores = queries @ keys.transpose(2,3) #(2,2,6,6)
-        print (attn_scores)
+        mask_bool = self.mask.bool()[:num_tokens,:num_tokens]
+        attn_scores.masked_fill_(mask_bool,-torch.inf)
 
-inputs = torch.tensor([[
-    [0.43, 0.15, 0.89],
-    [0.55, 0.87, 0.66],
-    [0.57, 0.85, 0.64],
-    [0.22, 0.58, 0.33],
-    [0.77, 0.25, 0.10],
-    [0.05, 0.80, 0.55] 
-],
-[
-    [0.43, 0.15, 0.89],
-    [0.55, 0.87, 0.66],
-    [0.57, 0.85, 0.64],
-    [0.22, 0.58, 0.33],
-    [0.77, 0.25, 0.10],
-    [0.05, 0.80, 0.55] 
-]]
-)
-torch.manual_seed(123)
-mha = MultiHeadAttention(3,2,6,0.0,2)
-mha(inputs)
+        attn_weights = torch.softmax(attn_scores / keys.shape[-1]**0.5, dim =-1)
+        attn_weights = self.dropout(attn_weights)
+        context_vec = (attn_weights @ values).transpose(1,2)
+
+        context_vec = context_vec.contiguous().view(b, num_tokens, self.d_out)
+        context_vec = self.out_proj(context_vec)
+        return context_vec
+
+
+# inputs = torch.tensor([[
+#     [0.43, 0.15, 0.89],
+#     [0.55, 0.87, 0.66],
+#     [0.57, 0.85, 0.64],
+#     [0.22, 0.58, 0.33],
+#     [0.77, 0.25, 0.10],
+#     [0.05, 0.80, 0.55] 
+# ],
+# [
+#     [0.53, 0.31, 0.89],
+#     [0.54, 0.86, 0.65],
+#     [0.57, 0.90, 0.64],
+#     [0.32, 0.58, 0.33],
+#     [0.77, 0.75, 0.10],
+#     [0.05, 0.80, 0.45] 
+# ]]
+# )
+# torch.manual_seed(123)
+# mha = MultiHeadAttention(3,2,6,0.0,2)
+# mha(inputs)
