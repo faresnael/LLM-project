@@ -40,7 +40,7 @@ class MultiHeadAttention(nn.Module):
         self.head_dim = d_out // num_heads
         self.w_query = nn.Linear(d_in,d_out, bias =qkv_bias)
         self.w_key = nn.Linear(d_in,d_out,bias=qkv_bias)
-        self.w_vlaue = nn.Linear(d_in, d_out, bias = qkv_bias)
+        self.w_value = nn.Linear(d_in, d_out, bias = qkv_bias)
         self.out_proj = nn.Linear(d_out, d_out)
         self.dropout = nn.Dropout (dropout)
         self.register_buffer("mask", torch.triu(torch.ones(context_length,context_length),diagonal = 1))
@@ -49,7 +49,7 @@ class MultiHeadAttention(nn.Module):
         b , num_tokens,d_in = x.shape
         keys = self.w_key(x) #linear function takes d_in and d_out and x (matrix), makes a matrix of shape (b,num_tokens,d_out)  (2,6,2)
         queries = self.w_query(x)
-        values = self.w_vlaue(x)
+        values = self.w_value(x)
         keys = keys.view(b,num_tokens,self.num_heads, self.head_dim) # changed the dimensions to (2,6,2,1)
         values = values.view(b,num_tokens,self.num_heads, self.head_dim)
         queries = queries.view(b,num_tokens,self.num_heads, self.head_dim)
